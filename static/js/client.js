@@ -4,10 +4,10 @@ const serverUrl = 'ws://localhost:8080';
 let socket = new WebSocket(serverUrl);
 
 // Attempt to retrieve the clientId from session storage
-let clientId = sessionStorage.getItem('clientId');
+export let clientId = sessionStorage.getItem('clientId');
 // If it doesn't exist (new tab or first visit), generate a new one and store it
 if (!clientId) {
-    clientId = generateUniqueId();
+     clientId = generateUniqueId();
     sessionStorage.setItem('clientId', clientId);
 }
 
@@ -21,13 +21,15 @@ document.addEventListener("DOMContentLoaded", function() {
     // Inside your client.js or equivalent
     socket.onmessage = function(event) {
         const data = JSON.parse(event.data);
-
         if (data.type === 'ALL_SNAKES') {
-            // Data.snakes contains the states of all snakes
-            console.log('All snakes:', data.snakes);
-            // Implement rendering or updating the snakes on the canvas based on data.snakes
-            updateAllSnakes(data.snakes);
+            window.updateAllSnakes(data.snakes);
         }
+
+        if (data.type === 'DISCONNECT') {
+            console.log(data)
+            window.removeSnake(data.clientId); // Implement this function to remove the snake
+        }
+
     };
 
 });
