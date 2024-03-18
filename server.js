@@ -1,81 +1,104 @@
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8080 });
 
-// Use an object to store snakes, where each key is a clientId
-let snakes = {};
+// Use an object to store sessions, where each key is a sessionId
+// and its value is an object with clientId keys mapping to snake info and WebSocket connections
+let sessions = {};
 
 wss.on('connection', function connection(ws) {
-
     console.log('A new client connected.');
-    console.log(snakes)
 
     ws.on('message', function incoming(message) {
         const data = JSON.parse(message);
+        const sessionId = data.sessionId; // Assume sessionId is always provided
+        if (!sessions[sessionId]) {
+            sessions[sessionId] = {}; // Initialize session if it doesn't exist
+        }
+        
         if (data.type === 'INITIALIZE') {
             // Add or update the snake's state, including the WebSocket connection
-            snakes[data.clientId] = { ...data.snakeInfo, ws: ws };
-            // Send the new client the state of all snakes (excluding the ws property)
-            ws.send(JSON.stringify({ type: 'ALL_SNAKES', snakes: sanitizeSnakes(snakes) }));
-            // Broadcast the updated state of this snake to all other clients
-            broadcastSnakes(data.clientId);
+            sessions[sessionId][data.clientId] = { ...data.snakeInfo, ws: ws };
+            // Send the new client the state of all snakes in the session (excluding the ws property)
+            ws.send(JSON.stringify({ type: 'ALL_SNAKES', snakes: sanitizeSnakes(sessions[sessionId]) }));
+            // Broadcast the updated state of this snake to all other clients in the session
+            broadcastSnakes(sessionId, data.clientId);
         } else if (data.type === 'GAME_STATE') {
-            if (!snakes[data.clientId]) {
-                // This clientId doesn't exist yet, so it's likely a new connection.
-                // For example, initialize it without trying to preserve an existing ws property.
-                snakes[data.clientId] = { ...data.snakeInfo, ws: ws };
+            // Update game state for a snake within a session
+            if (!sessions[sessionId][data.clientId]) {
+                sessions[sessionId][data.clientId] = { ...data.snakeInfo, ws: ws };
             } else {
-                // The clientId exists, update its info while preserving the existing ws property.
-                snakes[data.clientId] = { ...data.snakeInfo, ws: snakes[data.clientId].ws };
+                sessions[sessionId][data.clientId] = { ...data.snakeInfo, ws: sessions[sessionId][data.clientId].ws };
             }
+            broadcastSnakes(sessionId);
+        } else if (data.type === 'FETCH_SESSIONS') {
+         // Respond with the current session information
+            const sessionInfo = Object.keys(sessions)
+            .filter(sessionId => sessionId && sessionId !== 'undefined') // Exclude falsy and 'undefined' as string
+            .reduce((info, sessionId) => {
+                info[sessionId] = Object.keys(sessions[sessionId]).length; // Count users per session
+                return info;
+            }, {});
 
-            broadcastSnakes();
+            console.log(sessionInfo);
+    
+            ws.send(JSON.stringify({ type: 'SESSION_LIST', sessions: sessionInfo }));
         }
     });
 
-
     ws.on('close', function() {
-        // Find the clientId for the disconnected client and remove their snake
-        Object.keys(snakes).forEach(clientId => {
-            if (snakes[clientId].ws === ws) {
-                console.log(`Client ID: ${clientId} has disconnected.`);
-                delete snakes[clientId]; // Remove the snake on disconnection
-                broadcastDisconnection(clientId);
-            }
+        // Remove the disconnected client's snake from the session
+        Object.keys(sessions).forEach(sessionId => {
+            Object.keys(sessions[sessionId]).forEach(clientId => {
+                if (sessions[sessionId][clientId].ws === ws) {
+                    console.log(`Client ID: ${clientId} in session: ${sessionId} has disconnected.`);
+                    delete sessions[sessionId][clientId];
+                    broadcastDisconnection(sessionId, clientId);
+    
+                    // Check if the session now has zero users
+                    if (Object.keys(sessions[sessionId]).length === 0) {
+                        console.log(`Session ID: ${sessionId} is empty and will be deleted.`);
+                        delete sessions[sessionId]; // Delete the empty session
+                    }
+                }
+            });
         });
     });
+    
 });
 
-
-function sanitizeSnakes(snakes) {
+function sanitizeSnakes(snakesInSession) {
     let sanitizedSnakes = {};
-    Object.keys(snakes).forEach(clientId => {
-        const { ws, ...snakeInfo } = snakes[clientId];
+    Object.keys(snakesInSession).forEach(clientId => {
+        const { ws, ...snakeInfo } = snakesInSession[clientId];
         sanitizedSnakes[clientId] = snakeInfo;
     });
     return sanitizedSnakes;
 }
 
-function broadcastSnakes(excludeClientId = '') {
+function broadcastSnakes(sessionId, excludeClientId = '') {
     const message = JSON.stringify({
         type: 'ALL_SNAKES',
-        snakes: sanitizeSnakes(snakes)
+        snakes: sanitizeSnakes(sessions[sessionId])
     });
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN && (!snakes[excludeClientId] || client !== snakes[excludeClientId].ws)) {
-
-            client.send(message);
+    Object.values(sessions[sessionId]).forEach(({ ws }) => {
+        const isExcludedClient = excludeClientId && sessions[sessionId][excludeClientId] && ws === sessions[sessionId][excludeClientId].ws;
+        if (ws.readyState === WebSocket.OPEN && !isExcludedClient) {
+            ws.send(message);
         }
     });
 }
 
-function broadcastDisconnection(clientId) {
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'DISCONNECT', clientId: clientId }));
+
+function broadcastDisconnection(sessionId, clientId) {
+    const message = JSON.stringify({
+        type: 'DISCONNECT',
+        clientId: clientId
+    });
+    Object.values(sessions[sessionId]).forEach(({ ws }) => {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(message);
         }
     });
 }
-
 
 console.log('WebSocket server started on ws://localhost:8080');
-

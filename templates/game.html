@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Snake Game</title>
+    <style>
+        body {
+            font-family: 'Lucida Grande', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #6ee7b7, #3b82f6);
+            color: #fff;
+        }
+        canvas {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+        #backButton {
+            font-size: 16px;
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        #backButton:hover {
+            background-color: #dc2626;
+            transform: translateY(-2px);
+        }
+        #backButton:active {
+            transform: translateY(1px);
+        }
+    </style>
+</head>
+<body>
+    <button id="backButton">Back to Sessions</button>
+    <canvas id="myCanvas" width="500" height="500"></canvas>
+    <script type="module" src="static\js\game.js" defer></script>
+    <script type="module" src="static\js\client.js" defer></script>
+    <script>
+        document.getElementById('backButton').addEventListener('click', () => {
+            window.location.href = '/';
+        });
+    </script>
+</body>
+</html>

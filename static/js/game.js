@@ -1,16 +1,16 @@
-import { sendUpdatedData, clientId } from './client.js';
+import { sendUpdatedData, getClientId  } from './client.js';
 import * as THREE from "https://cdn.skypack.dev/three@0.132.2";
 
 let scene, camera, renderer, snakeHead, curve, snakeGeometry, snakeMaterial, snakeMesh;
 let points = []; // Stores the points for the curve
 let direction = new THREE.Vector3(0.05, 0, 0); // Initial movement direction
 let snakeMeshes = {}; // Track all snake meshes, keyed by clientId
-let localClientId = clientId;
+let localClientId = getClientId() ;
 
 let lastUpdateTime = 0;
 const updateInterval = 100; // Update every 100 milliseconds
 
-console.log(clientId)
+console.log(localClientId)
 
 let snakeProperties = {}
 
@@ -55,17 +55,17 @@ function init() {
 
 function saveSnakeState() {
     const stateToSave = {
-        clientId,
+        localClientId,
         snakeProperties, // Includes headColor, bodyColor
         direction: { x: direction.x, y: direction.y, z: direction.z },
         points, // The curve points for the body
         headPosition: { x: snakeHead.position.x, y: snakeHead.position.y, z: snakeHead.position.z }
     };
-    localStorage.setItem('snakeState ' + clientId, JSON.stringify(stateToSave));
+    localStorage.setItem('snakeState ' + localClientId, JSON.stringify(stateToSave));
 }
 
 function loadSnakeState() {
-    const savedStateJSON = localStorage.getItem('snakeState '+ clientId);
+    const savedStateJSON = localStorage.getItem('snakeState '+ localClientId);
     if (savedStateJSON) {
         return JSON.parse(savedStateJSON);
     }
@@ -74,16 +74,16 @@ function loadSnakeState() {
 
 
 // Ensure you call this function before the page unloads
-window.addEventListener('beforeunload', saveSnakeState);
+//window.addEventListener('beforeunload', saveSnakeState);
 
 
 function initLocalSnake() {
-    const savedState = loadSnakeState(clientId);
+    const savedState = loadSnakeState(localClientId);
 
     // Reset points array to ensure it's always defined
     points = [];
 
-    if (savedState && savedState.points && savedState.clientId === clientId) {
+    if (savedState && savedState.points && savedState.localClientId === localClientId) {
         snakeProperties = savedState.snakeProperties; // Assuming this includes headColor, bodyColor, etc.
         direction.set(savedState.direction.x, savedState.direction.y, savedState.direction.z);
 
@@ -302,5 +302,17 @@ document.addEventListener('keydown', (event) => {
 });
 
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', function() {
+    // Only initialize the game if we're on a session page
+    if (window.location.pathname !== '/' && window.location.pathname.length > 1) {
+        init(); // Your existing game initialization function
+        // Ensure you call this function before the page unloads
+        window.addEventListener('beforeunload', saveSnakeState);
+
+
+    }
+});
+
+
+//document.addEventListener('DOMContentLoaded', init);
 

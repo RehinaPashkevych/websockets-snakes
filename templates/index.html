@@ -3,11 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canvas Image Example</title>
+    <title>Join or Create a Game Session</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to right, #74ebd5, #acb6e5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+        h2 {
+            color: #fff;
+            text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
+        }
+        .session-list {
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background-color: #fff;
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: #555;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            padding: 10px 20px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+        button:active {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+        }
+        #createSession {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
 </head>
 <body>
-    <canvas id="myCanvas" width="500" height="500" style="border:1px solid #000;"></canvas>
-    <script type="module" src="static\js\app.js" defer></script>
-    <script type="module" src="static\js\client.js" defer></script>
+    <h2>Which session do you want to join or create?</h2>
+    <div id="sessionList" class="session-list">
+        <!-- Sessions will be populated here -->
+    </div>
+    <button id="createSession">Create New Session</button>
+
+    <script type="module" src="static/js/index.js" defer></script>
+    <script type="module" src="static/js/client.js" defer></script>
 </body>
 </html>
