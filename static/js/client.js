@@ -2,6 +2,8 @@ import { getSnakeProperties } from './game.js';
 
 const serverUrl = 'ws://localhost:8080';
 let socket = new WebSocket(serverUrl);
+socket.binaryType = 'blob'; // Ensure binary data is received as Blob objects
+
 
 export function getClientId() {
     let clientId  = sessionStorage.getItem('clientId');
@@ -23,7 +25,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (window.location.pathname != '/') {
             console.log("Connected to the WebSocket server.");
-            // Existing functionality: send initial data to the server
             sendInitialData();
         }
 
@@ -38,23 +39,32 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     };
 
-    // Inside your client.js or equivalent
-    socket.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        if (data.type === 'ALL_SNAKES') {
-            window.updateAllSnakes(data.snakes);
-        }
+    socket.onmessage = async function(event) {
+         const blob = event.data; // The data is a Blob
+         //console.log("log the Buffer" + blob); // Directly log the Buffer object
+        // console.log("binary data: " + (blob instanceof Blob)); // Should log true for binary messages
 
-        if (data.type === 'DISCONNECT') {
-            console.log(data)
-            window.removeSnake(data.clientId); // Implement this function to remove the snake
-        } else if (data.type === 'SESSION_LIST') {
-            // Assuming 'updateSessionList' updates the UI based on 'data.sessions'
-            updateSessionList(data.sessions);
-            // Dispatch a custom event with session data
-            const sessionEvent = new CustomEvent('sessionListReceived', { detail: data.sessions });
-            document.dispatchEvent(sessionEvent);
+        try{
+            const text = await blob.text();
+            const data = JSON.parse(text); // Parse the text as JSON
+       
+            if (data.type === 'ALL_SNAKES') {
+                window.updateAllSnakes(data.snakes);
+            }
+    
+            if (data.type === 'DISCONNECT') {
+                console.log(data)
+                window.removeSnake(data.clientId); // Implement this function to remove the snake
+            } else if (data.type === 'SESSION_LIST') {
+                updateSessionList(data.sessions);
+                // Dispatch a custom event with session data
+                const sessionEvent = new CustomEvent('sessionListReceived', { detail: data.sessions });
+                document.dispatchEvent(sessionEvent);
+            }
+        } catch (e) {
+            console.error('Error parsing JSON:', e);
         }
+    
 
     };
 
@@ -65,27 +75,40 @@ export function sendUpdatedData() {
     const snakeInfo = getSnakeProperties();
 
     if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({
+
+        const message = JSON.stringify({
             type: 'GAME_STATE',
             sessionId: sessionId,
-            clientId: clientId, // Use the clientId from session storage
+            clientId: clientId, 
             snakeInfo: snakeInfo
-        }));
+        });
+         // Use TextEncoder to convert the string to binary data (ArrayBuffer)
+         const encoder = new TextEncoder();
+         const binaryData = encoder.encode(message);
+
+        socket.send(binaryData);
     } else {
         console.log("WebSocket is not open. ReadyState:", socket.readyState);
-        // Optionally, handle the not-ready state, e.g., queue the data or retry later
     }
 }
 
 function sendInitialData() {
     const snakeInfo = getSnakeProperties();
 
-    socket.send(JSON.stringify({
+    const message = JSON.stringify({
         type: 'INITIALIZE',
         sessionId: sessionId,
-        clientId: clientId, // Use the clientId from session storage
+        clientId: clientId, 
         snakeInfo: snakeInfo
-    }));
+    });
+     
+     const encoder = new TextEncoder();
+     const binaryData = encoder.encode(message);
+
+    console.log("binary send client INITIALIZE :" + binaryData );
+    
+
+    socket.send(binaryData);
 }
 
 
