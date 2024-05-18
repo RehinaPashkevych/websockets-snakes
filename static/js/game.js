@@ -118,7 +118,6 @@ function initLocalSnake() {
     scene.add(snakeMesh);
 
     // Add eyes or other details to the snake head as needed
-    // Example for adding eyes, adjust positions as necessary
     const eyeMaterial = new THREE.MeshStandardMaterial({ color: '#000000' });
     const eyeGeometry = new THREE.SphereGeometry(0.05, 12, 6);
     const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
@@ -153,7 +152,7 @@ function createSnakeMesh(snakeInfo) {
     return snakeGroup;
 }
 
-// Assume snakeMeshes now also tracks positions history for each snake.
+
 function animateSnake(clientId, newHeadPosition) {
     // Retrieve the entry for the clientId
     let snakeEntry = snakeMeshes[clientId];
