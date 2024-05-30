@@ -60,7 +60,7 @@ wss.on('connection', function connection(ws) {
         Object.keys(sessions).forEach(sessionId => {
             Object.keys(sessions[sessionId]).forEach(clientId => {
                 if (sessions[sessionId][clientId].ws === ws) {
-                    console.log(`Client ID: ${clientId} in session: ${sessionId} has disconnected.`);
+                    console.log(`Client ID: ${clientId} in session ${sessionId} has disconnected.`);
                     delete sessions[sessionId][clientId];
                     broadcastDisconnection(sessionId, clientId);
     

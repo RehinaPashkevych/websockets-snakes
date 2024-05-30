@@ -1,9 +1,14 @@
 # WebSockets Snake App
 
+<!--
 > :warning: **Development Stage:** This application is currently under development and may undergo significant changes. It is a school project designed for educational purposes.
-
+-->
 
 The WebSockets Snake App is a real-time multiplayer snake application built with WebSockets, enabling seamless interaction between players in different sessions. This project uses Flask for the backend and vanilla JavaScript for the frontend, showcasing the power of WebSockets for real-time web applications.
+
+<img src="images/Screenshot_126.png" alt="game img" width="500" height="300">
+<img src="images/Screenshot_125.png" alt="game img" width="500" height="300">
+
 
 ## Features
 
@@ -43,7 +48,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ## Communication
 
-![Communication Schema](commun-schema-jpg.jpg)
+![Communication Schema](images/commun-schema-jpg.jpg)
 
 These types of messages are implemented to manage communication between the client and server, handling various states and actions within the game application.
 

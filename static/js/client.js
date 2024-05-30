@@ -3,6 +3,8 @@ import { getSnakeProperties } from './game.js';
 const serverUrl = 'ws://localhost:8080';
 let socket = new WebSocket(serverUrl);
 socket.binaryType = 'blob'; // Ensure binary data is received as Blob objects
+const encoder = new TextEncoder();
+let binaryData = "";
 
 
 export function getClientId() {
@@ -33,7 +35,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 // Set an interval to send FETCH_SESSIONS request every 400 ms
             setInterval(() => {
                 if (socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({ type: 'FETCH_SESSIONS' }));
+                    const binaryData = encoder.encode(JSON.stringify({ type: 'FETCH_SESSIONS' }));
+                    socket.send(binaryData);
                 }
             }, 400); 
         }
@@ -83,8 +86,8 @@ export function sendUpdatedData() {
             snakeInfo: snakeInfo
         });
          // Use TextEncoder to convert the string to binary data (ArrayBuffer)
-         const encoder = new TextEncoder();
-         const binaryData = encoder.encode(message);
+         
+          binaryData = encoder.encode(message);
 
         socket.send(binaryData);
     } else {
@@ -102,11 +105,10 @@ function sendInitialData() {
         snakeInfo: snakeInfo
     });
      
-     const encoder = new TextEncoder();
-     const binaryData = encoder.encode(message);
+     //const encoder = new TextEncoder();
+    binaryData = encoder.encode(message);
 
-    console.log("binary send client INITIALIZE :" + binaryData );
-    
+    //console.log("binary send client INITIALIZE :" + binaryData );
 
     socket.send(binaryData);
 }
