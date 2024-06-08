@@ -48,7 +48,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ## Communication
 
-![Communication Schema](images/commun-schema-jpg.jpg)
+![Communication Schema](images/graph_communication.jpg)
 
 These types of messages are implemented to manage communication between the client and server, handling various states and actions within the game application.
 
@@ -98,47 +98,7 @@ ___
 
 The types mentioned above are implemented to facilitate game logic and manage the exchange of information between the client and the server.
 
-### 3. INITIALIZE
-**Direction:** Client -> Server  
-**Purpose:** The client informs the server of a new or reconnected user, initializing their game state.  
-**Message Content:**  
-```json
-{
-  "type": "INITIALIZE",
-  "sessionId": "sessionId",
-  "clientId": "clientId",
-  "snakeInfo": {
-    "headColor": "color",
-    "bodyColor": "color",
-    "headPosition": {
-      "x": float,
-      "y": float,
-      "z": float
-    },
-   "direction": {
-      "x": float,
-      "y": float,
-      "z": float
-    },
-  }
-}
-```
-
-**Fields:**
-- `type`: A string indicating the type of message. Here it is `"INITIALIZE"`.
-- `sessionId`: The ID of the game session.
-- `clientId`: The unique ID of the client.
-- `snakeInfo`: An object containing the snake's properties:
-  - `headColor`: Color of the snake's head.
-  - `bodyColor`: Color of the snake's body.
-  - `headPosition`: Position of the snake's head with `x`, `y`, and `z` coordinates.
-  - `direction`: Direction of the snake's moving with `x`, `y`, and `z` coordinates.
-
-**Code Functionality:**
-- The client sends this message when joins or an existing user reconnects.
-- Implemented in `client.js` with `sendInitialData()` function, which is called when the WebSocket connection is opened.
-
-### 4. ALL_SNAKES
+### 3. ALL_SNAKES
 **Direction:** Server -> Client  
 **Purpose:** The server sends the state of all snakes in the session to the client.  
 **Message Content:**  
@@ -176,7 +136,7 @@ The types mentioned above are implemented to facilitate game logic and manage th
 - Implemented in `server.js` within the `broadcastSnakes()` function, which is called whenever the state of a snake changes (every 100ms).
 
 
-### 5. GAME_STATE
+### 4. GAME_STATE
 **Direction:** Client -> Server  
 **Purpose:** The client sends its updated game state to the server.  
 **Message Content:**  
@@ -206,7 +166,7 @@ The types mentioned above are implemented to facilitate game logic and manage th
 - Implemented in `client.js` with `sendUpdatedData()` function, which is called during the game loop.
 
 
-### 6. DISCONNECT
+### 5. DISCONNECT
 **Direction:** Server -> Client  
 **Purpose:** The server informs the client that a client has disconnected.  
 **Message Content:**  
@@ -247,7 +207,33 @@ The WebSocket Snakes project is structured to handle both server-side and client
 
 - app.py: This is the main Flask application file. It sets up the server, defines routes, and handles requests. It likely initializes the WebSocket server and manages the overall application logic.
 
-- server.js: Handles WebSocket connections on the server-side. Manages game sessions, receives messages from clients, updates the game state, and broadcasts updates to all connected clients. Key functions include managing new connections, handling incoming messages (INITIALIZE, GAME_STATE, FETCH_SESSIONS), broadcasting updates (ALL_SNAKES, DISCONNECT), and maintaining the game state.
+- server.js: Handles WebSocket connections on the server-side. Manages game sessions, receives messages from clients, updates the game state, and broadcasts updates to all connected clients. Key functions include managing new connections, handling incoming messages (GAME_STATE, FETCH_SESSIONS), broadcasting updates (ALL_SNAKES, DISCONNECT), and maintaining the game state.
 
 Other files and directories are automatically created for the business logic of the app.
 
+# Binary packet
+
+- ### Types: 3 bites - 1 byte
+
+FETCH_SESSIONS - 000
+
+SESSION_LIST - 001
+
+ALL_SNAKES - 010
+
+GAME_STATE - 011
+
+DISCONNECT - 100
+
+- ### UID: 10 bytes
+- ### SessionId: 1 byte
+- ### SnakeInfo
+ - headColor:  6 bytes
+ - bodyColor:  6 bytes
+  - headPosition (32 bits + 32 bits = 8 bytes): we send x and y, z is automatically 0
+ - direction (4 bites): 00 means 0, 01 means 0.05, 10 means -0.05: we send x and y, z is automatically 0
+
+## FETCH_SESSIONS-SESSION_LISTS
+
+- ### client sends 3 bits of type message
+- ### server sends 3 bits of type message + sessions (1 byte for sessionId + 4 bits for number of users)

@@ -9,51 +9,52 @@ wss.on('connection', function connection(ws) {
     console.log('A new client connected.');
 
     ws.on('message', function incoming(message) {
-        //console.log(message);
-        const data = JSON.parse(message);
-        const sessionId = data.sessionId; 
 
-        if (!sessions[sessionId]) {
-            sessions[sessionId] = {}; // Initialize session if it doesn't exist
-        }
+            if (Buffer.isBuffer(message) && message.length === 1) { // Check if it's a binary message and the correct length
+              //  console.log("FETCH_SESSION binary message received (bin): " + bufferToBinaryString(message));
+                const type = message.readUInt8(0) >> 5; // Extract the first 3 bits for the type
+                if (type === 0b000) { // 000 binary for FETCH_SESSIONS
+                    // Construct a response for each session
+                    const sessionEntries = Object.entries(sessions);
+                    const bufferLength = 1 + sessionEntries.length * 2; // 1 byte for type + (1 byte for ID + 1 byte for user count) for each session
+                    const buffer = Buffer.alloc(bufferLength);
+                    buffer.writeUInt8(0b001 << 5, 0); // Set type for SESSION_LIST (001)
+                    sessionEntries.forEach(([sessionId, users], index) => {
+                        const userCount = Object.keys(users).length;
+                        buffer.writeUInt8(parseInt(sessionId), 1 + index * 2); // Session ID as 1 byte
+                        buffer.writeUInt8(userCount, 1 + index * 2 + 1); // Number of users starts from the lowest bit
+                    });
         
-        if (data.type === 'INITIALIZE') {
-            // Add or update the snake's state, including the WebSocket connection
-            sessions[sessionId][data.clientId] = { ...data.snakeInfo, ws: ws };
-            // Send the new client the state of all snakes in the session (excluding the ws property)
-            const message = JSON.stringify({ type: 'ALL_SNAKES', snakes: sanitizeSnakes(sessions[sessionId]) });
-            const binaryData = Buffer.from(message); 
-            console.log("binary send:" + binaryData );
-            ws.send(binaryData);
-            // Broadcast the updated state of this snake to all other clients in the session
-            broadcastSnakes(sessionId, data.clientId);
-        } else if (data.type === 'GAME_STATE') {
-            // Update game state for a snake within a session
-            if (!sessions[sessionId][data.clientId]) {
-                sessions[sessionId][data.clientId] = { ...data.snakeInfo, ws: ws };
-            } else {
-                sessions[sessionId][data.clientId] = { ...data.snakeInfo, ws: sessions[sessionId][data.clientId].ws };
+                    ws.send(buffer);
+                    return;
+                }
             }
-            broadcastSnakes(sessionId);
-        } else if (data.type === 'FETCH_SESSIONS') {
-         // Respond with the current session information
-            const sessionInfo = Object.keys(sessions)
-            .filter(sessionId => sessionId && sessionId !== 'undefined') // Exclude falsy and 'undefined' as string
-            .reduce((info, sessionId) => {
-                info[sessionId] = Object.keys(sessions[sessionId]).length; // Count users per session
-                return info;
-            }, {});
-
-            console.log(sessionInfo);
-
-            const message = JSON.stringify({ type: 'SESSION_LIST', sessions: sessionInfo });
-            const binaryData = Buffer.from(message);
-
-            console.log("binary send SESSION_LIST :" + binaryData.toString('hex') );
     
-            ws.send(binaryData);
+        // Fallback to JSON handling if not a binary message or not an INITIALIZE type
+        try {
+            const data = JSON.parse(message.toString());
+            const sessionId = data.sessionId; 
+    
+            if (!sessions[sessionId]) {
+                sessions[sessionId] = {}; // Initialize session if it doesn't exist
+            }
+            
+            switch (data.type) {
+                case 'GAME_STATE':
+                    // Update game state for a snake within a session
+                    if (!sessions[sessionId][data.clientId]) {
+                        sessions[sessionId][data.clientId] = { ...data.snakeInfo, ws: ws };
+                    } else {
+                        sessions[sessionId][data.clientId] = { ...data.snakeInfo, ws: sessions[sessionId][data.clientId].ws };
+                    }
+                    broadcastSnakes(sessionId);
+                    break;
+            }
+        } catch (e) {
+            console.error('Failed to parse message as JSON:', e);
         }
     });
+    
 
     ws.on('close', function() {
         // Remove the disconnected client's snake from the session
@@ -114,6 +115,15 @@ function broadcastDisconnection(sessionId, clientId) {
             ws.send(binaryData); // Send as binary
         }
     });
+}
+
+// Helper function to convert buffer to a binary string
+function bufferToBinaryString(buffer) {
+    let binaryString = '';
+    for (let i = 0; i < buffer.length; i++) {
+        binaryString += buffer[i].toString(2).padStart(8, '0') + ' '; // Convert byte to binary and pad with zeros
+    }
+    return binaryString.trim();
 }
 
 
